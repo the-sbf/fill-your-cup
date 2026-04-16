@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fill Your Cup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #FDFAF6;
+    font-family: 'Nunito', 'Varela Round', 'Trebuchet MS', system-ui, sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+    color: #3D2B1F;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+  .header h1 {
+    font-size: clamp(1.45rem, 5vw, 2rem);
+    font-weight: 800;
+    background: linear-gradient(120deg, #E07A5F, #F4A261, #E07A5F);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 0.95rem;
+    color: #8C6B58;
+    font-weight: 600;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+    margin-bottom: 28px;
+  }
+
+  .card {
+    background: var(--bg, #FFFFFF);
+    border: 2px solid var(--bdr-light, #EDE0D6);
+    border-radius: 16px;
+    padding: 14px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .card:active { transform: scale(0.94); }
+
+  .card .emoji {
+    font-size: 2rem;
+    line-height: 1;
+  }
+  .card .label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    color: #6B4F3F;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+
+  /* Checkmark */
+  .card .check {
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    width: 18px;
+    height: 18px;
+    background: var(--bdr, #E07A5F);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+  .card .check::after {
+    content: '';
+    width: 9px;
+    height: 6px;
+    border-left: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(-45deg) translateY(-1px);
+  }
+
+  /* Selected state */
+  .card.selected {
+    background: var(--sel, #FFE4D6);
+    border-color: var(--bdr, #E07A5F);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .card.selected .check {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .card.selected .label { color: #5A3020; font-weight: 800; }
+
+  /* ── Cup section ── */
+  .cup-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .cup-wrapper {
+    position: relative;
+    width: 148px;
+    height: 152px;
+  }
+  .cup-wrapper svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Cup emoji fade-in */
+  .cup-emoji {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .cup-emoji.visible { opacity: 1; }
+
+  /* Animated fill inside SVG */
+  #cupFill {
+    transition: height 0.6s cubic-bezier(0.34, 1.15, 0.64, 1),
+                y      0.6s cubic-bezier(0.34, 1.15, 0.64, 1);
+  }
+
+  .percent-label {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #E07A5F;
+    min-height: 1.4em;
+  }
+
+  /* ── Threshold message ── */
+  .threshold-msg {
+    min-height: 2.8em;
+    text-align: center;
+    font-size: 0.93rem;
+    font-weight: 700;
+    color: #7A5240;
+    max-width: 300px;
+    line-height: 1.55;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .threshold-msg.visible { opacity: 1; }
+
+  /* ── Done button ── */
+  .btn-done {
+    margin-top: 6px;
+    padding: 14px 48px;
+    font-size: 1rem;
+    font-weight: 800;
+    font-family: inherit;
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    background: #E0C9B4;
+    color: #A08070;
+    transition: background 0.28s ease, color 0.28s ease, transform 0.12s ease, box-shadow 0.28s ease;
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-done.active {
+    background: linear-gradient(135deg, #E07A5F, #F4A261);
+    color: #FFFFFF;
+    pointer-events: auto;
+    box-shadow: 0 4px 18px rgba(224,122,95,0.4);
+  }
+  .btn-done.active:active { transform: scale(0.96); }
+
+  /* ── Close overlay ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: #FDFAF6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    opacity: 0;
+    transform: translateY(40px);
+    pointer-events: none;
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    z-index: 100;
+  }
+  .overlay.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .overlay-card {
+    background: #FFF5EF;
+    border: 2px solid #F0C8B0;
+    border-radius: 24px;
+    padding: 32px 28px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+  }
+  .overlay-card .cup-icon { font-size: 3rem; margin-bottom: 16px; }
+  .overlay-card h2 {
+    font-size: 1.55rem;
+    font-weight: 800;
+    background: linear-gradient(120deg, #E07A5F, #F4A261);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 14px;
+  }
+  .overlay-card p {
+    font-size: 0.92rem;
+    color: #6B4F3F;
+    line-height: 1.65;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .overlay-card .chosen {
+    background: #FFE4D6;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #A0442A;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <h1>What fills your cup?</h1>
+  <p>Choose at least 3.</p>
+</div>
+
+<!-- ── Item Grid ── -->
+<!-- Each card: --bg unselected bg, --sel selected bg, --bdr border/check colour, --bdr-light subtle resting border -->
+<div class="grid" id="grid">
+  <div class="card" data-label="Time in nature"      data-idx="0" style="--bg:#DDF0E4;--sel:#B4DCBC;--bdr:#6EAF88;--bdr-light:#B4DCBC" onclick="toggle(this)"><div class="check"></div><span class="emoji">🌿</span><span class="label">Time in nature</span></div>
+  <div class="card" data-label="Movement"            data-idx="1" style="--bg:#FFE8D0;--sel:#F9C8A0;--bdr:#D98048;--bdr-light:#F9C8A0" onclick="toggle(this)"><div class="check"></div><span class="emoji">🏃</span><span class="label">Movement</span></div>
+  <div class="card" data-label="Hydration"           data-idx="2" style="--bg:#D8ECFF;--sel:#A4CCEE;--bdr:#5A9ED4;--bdr-light:#A4CCEE" onclick="toggle(this)"><div class="check"></div><span class="emoji">💧</span><span class="label">Hydration</span></div>
+  <div class="card" data-label="Nourishment"         data-idx="3" style="--bg:#FFE2DE;--sel:#F5B0A8;--bdr:#D46860;--bdr-light:#F5B0A8" onclick="toggle(this)"><div class="check"></div><span class="emoji">🍎</span><span class="label">Nourishment</span></div>
+  <div class="card" data-label="Connection"          data-idx="4" style="--bg:#FFD8EA;--sel:#F4A8C8;--bdr:#CC6090;--bdr-light:#F4A8C8" onclick="toggle(this)"><div class="check"></div><span class="emoji">👥</span><span class="label">Connection</span></div>
+  <div class="card" data-label="Solitude"            data-idx="5" style="--bg:#D0EDE8;--sel:#92C8BC;--bdr:#4EA898;--bdr-light:#92C8BC" onclick="toggle(this)"><div class="check"></div><span class="emoji">🤫</span><span class="label">Solitude</span></div>
+  <div class="card" data-label="Creative expression" data-idx="6" style="--bg:#FFF4C4;--sel:#F0D87C;--bdr:#C8A020;--bdr-light:#F0D87C" onclick="toggle(this)"><div class="check"></div><span class="emoji">🎨</span><span class="label">Creative expression</span></div>
+  <div class="card" data-label="Reflection"          data-idx="7" style="--bg:#DAE4FF;--sel:#A0B8F0;--bdr:#5A80D4;--bdr-light:#A0B8F0" onclick="toggle(this)"><div class="check"></div><span class="emoji">💭</span><span class="label">Reflection</span></div>
+  <div class="card" data-label="Rest"                data-idx="8" style="--bg:#D8EEEC;--sel:#90C8C4;--bdr:#3E9E98;--bdr-light:#90C8C4" onclick="toggle(this)"><div class="check"></div><span class="emoji">😴</span><span class="label">Rest</span></div>
+</div>
+
+<!-- ── Cup Section ── -->
+<div class="cup-section">
+
+  <!-- SVG Cup (mug shape with handle) -->
+  <div class="cup-wrapper">
+    <svg viewBox="0 0 150 152" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Clip to cup interior (below the rim) -->
+        <clipPath id="cupClip">
+          <path d="M 12,18 L 104,18 L 95,146 Q 95,150 89,150 L 27,150 Q 21,150 21,146 Z"/>
+        </clipPath>
+        <!-- Fill gradient: peach → coral → gold (bottom to top) -->
+        <linearGradient id="fillGrad" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%"   stop-color="#FFD6C0"/>
+          <stop offset="50%"  stop-color="#E07A5F"/>
+          <stop offset="100%" stop-color="#F4A261"/>
+        </linearGradient>
+        <!-- Glass body gradient -->
+        <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="#FFF9F5"/>
+          <stop offset="100%" stop-color="#F2E6DC"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Handle (behind cup body) -->
+      <path d="M 104,48 C 148,48 148,108 100,108 L 100,97 C 131,97 131,59 104,60 Z"
+            fill="#EDD9C8" stroke="#D4B09A" stroke-width="1.5"/>
+
+      <!-- Cup body background (glass) -->
+      <path d="M 10,18 L 106,18 L 97,148 Q 97,152 90,152 L 26,152 Q 19,152 19,148 Z"
+            fill="url(#glassGrad)" stroke="none"/>
+
+      <!-- Animated fill (clipped to cup interior) -->
+      <g clip-path="url(#cupClip)">
+        <rect id="cupFill" x="5" y="150" width="115" height="0"
+              fill="url(#fillGrad)" opacity="0.92"/>
+      </g>
+
+      <!-- Cup emojis (appear when item selected, float on fill, clipped to interior) -->
+      <g clip-path="url(#cupClip)" font-size="16" text-anchor="middle" dominant-baseline="middle">
+        <!-- Bottom row -->
+        <text class="cup-emoji" id="ce-0" x="33"  y="131">🌿</text>
+        <text class="cup-emoji" id="ce-1" x="58"  y="133">🏃</text>
+        <text class="cup-emoji" id="ce-2" x="83"  y="131">💧</text>
+        <!-- Middle row -->
+        <text class="cup-emoji" id="ce-3" x="32"  y="102">🍎</text>
+        <text class="cup-emoji" id="ce-4" x="58"  y="100">👥</text>
+        <text class="cup-emoji" id="ce-5" x="84"  y="102">🤫</text>
+        <!-- Top row -->
+        <text class="cup-emoji" id="ce-6" x="30"  y="72">🎨</text>
+        <text class="cup-emoji" id="ce-7" x="58"  y="70">💭</text>
+        <text class="cup-emoji" id="ce-8" x="86"  y="72">😴</text>
+      </g>
+
+      <!-- Shine strip on inner left wall -->
+      <rect x="24" y="24" width="7" height="54" rx="3.5"
+            fill="white" opacity="0.38" clip-path="url(#cupClip)"/>
+
+      <!-- Cup body outline (on top of fill) -->
+      <path d="M 10,18 L 106,18 L 97,148 Q 97,152 90,152 L 26,152 Q 19,152 19,148 Z"
+            fill="none" stroke="#D4B09A" stroke-width="2"/>
+
+      <!-- Rim (rounded top edge) -->
+      <rect x="7" y="6" width="102" height="16" rx="8"
+            fill="#EDD9C8" stroke="#D4B09A" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <div class="percent-label" id="percentLabel"></div>
+  <div class="threshold-msg" id="thresholdMsg"></div>
+
+</div>
+
+<!-- ── Done Button ── -->
+<button class="btn-done" id="btnDone" onclick="showOverlay()">Done</button>
+
+<!-- ── Close Overlay ── -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <div class="cup-icon">☕</div>
+    <h2>Your cup. Your call.</h2>
+    <p>These are the things that fill you up. Come back to this list when things feel hard. You don't need all nine every day — you just need enough.</p>
+    <div class="chosen" id="chosenList"></div>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  const selected = new Set();
+
+  // Cup geometry: interior y=18 to y=150, height=132
+  const CUP_BOTTOM = 150;
+  const CUP_HEIGHT = 132;
+
+  // Weighted fill — first 3 items give a generous jump (~14% each),
+  // items 4–9 share the rest evenly (~9.7% each)
+  const FILL_PCT = [0, 14, 28, 42, 51, 60, 70, 80, 90, 100];
+
+  // Threshold messages
+  const MESSAGES = {
+    3: "That's a start. Three things is enough to begin.",
+    5: "More than halfway. You know what you need.",
+    7: "Your cup is getting full. Hold onto these.",
+    9: "Full cup. You know yourself well."
+  };
+
+  function getMessage(count) {
+    if      (count >= 9) return MESSAGES[9];
+    else if (count >= 7) return MESSAGES[7];
+    else if (count >= 5) return MESSAGES[5];
+    else if (count >= 3) return MESSAGES[3];
+    return '';
+  }
+
+  function toggle(card) {
+    const label  = card.dataset.label;
+    const idx    = parseInt(card.dataset.idx);
+    const emojiEl = document.getElementById('ce-' + idx);
+
+    if (selected.has(label)) {
+      selected.delete(label);
+      card.classList.remove('selected');
+      emojiEl.classList.remove('visible');
+    } else {
+      selected.add(label);
+      card.classList.add('selected');
+      emojiEl.classList.add('visible');
+    }
+    update();
+  }
+
+  function update() {
+    const count = selected.size;
+    const pct   = FILL_PCT[count];
+
+    // Animate fill
+    const fillHeight = (pct / 100) * CUP_HEIGHT;
+    const fillY      = CUP_BOTTOM - fillHeight;
+    const fill = document.getElementById('cupFill');
+    fill.setAttribute('y',      fillY);
+    fill.setAttribute('height', fillHeight);
+
+    // Percent label
+    const pctEl = document.getElementById('percentLabel');
+    pctEl.textContent = count > 0 ? pct + '%' : '';
+
+    // Threshold message (fade transition)
+    const msg   = getMessage(count);
+    const msgEl = document.getElementById('thresholdMsg');
+    if (msg !== msgEl.textContent) {
+      msgEl.classList.remove('visible');
+      setTimeout(() => {
+        msgEl.textContent = msg;
+        if (msg) msgEl.classList.add('visible');
+      }, 180);
+    }
+
+    // Done button
+    document.getElementById('btnDone').classList.toggle('active', count >= 3);
+  }
+
+  function showOverlay() {
+    if (selected.size < 3) return;
+    const labels = Array.from(selected);
+    document.getElementById('chosenList').innerHTML =
+      'You chose: ' + labels.join(' · ');
+    document.getElementById('overlay').classList.add('show');
+  }
+</script>
+</body>
+</html>
